@@ -561,416 +561,436 @@ module.provider('Restangular', function() {
         
         
         
-       this.$get = ['$http', '$q', function($http, $q) {
+    }
+    );
+    this.$get = ['$http', '$q', function($http, $q) {
 
-          function createServiceForConfiguration(config) {
-              var service = {};
+        function createServiceForConfiguration(config) {
+            var service = {};
 
-              var urlHandler = new config.urlCreatorFactory[config.urlCreator]();
-              urlHandler.setConfig(config);
+            var urlHandler = new config.urlCreatorFactory[config.urlCreator]();
+            urlHandler.setConfig(config);
 
-              function restangularizeBase(parent, elem, route) {
-                  elem[config.restangularFields.route] = route;
-                  elem.getRestangularUrl = _.bind(urlHandler.fetchUrl, urlHandler, elem);
-                  elem.addRestangularMethod = _.bind(addRestangularMethodFunction, elem);
-                  
-                  // RequestLess connection
-                  elem.one = _.bind(one, elem, elem);
-                  elem.all = _.bind(all, elem, elem);
-                  elem.oneUrl = _.bind(oneUrl, elem, elem);
-                  elem.allUrl = _.bind(allUrl, elem, elem);
+            function restangularizeBase(parent, elem, route) {
+                elem[config.restangularFields.route] = route;
+                elem.getRestangularUrl = _.bind(urlHandler.fetchUrl, urlHandler, elem);
+                elem.addRestangularMethod = _.bind(addRestangularMethodFunction, elem);
 
-                  if (parent && config.shouldSaveParent(route)) {
-                      var parentId = config.getIdFromElem(parent);
-                      var parentUrl = config.getUrlFromElem(parent);
-                      
-                      var restangularFieldsForParent = _.union(
+                // RequestLess connection
+                elem.one = _.bind(one, elem, elem);
+                elem.all = _.bind(all, elem, elem);
+                elem.oneUrl = _.bind(oneUrl, elem, elem);
+                elem.allUrl = _.bind(allUrl, elem, elem);
+
+                if (parent && config.shouldSaveParent(route)) {
+                    var parentId = config.getIdFromElem(parent);
+                    var parentUrl = config.getUrlFromElem(parent);
+
+                    var restangularFieldsForParent = _.union(
                         _.values( _.pick(config.restangularFields, ['route', 'parentResource']) ),
                         config.extraFields
-                      );
-                      var parentResource = _.pick(parent, restangularFieldsForParent);
-                      
-                      if (config.isValidId(parentId)) {
-                          config.setIdToElem(parentResource, parentId);
-                      }
-                      if (config.isValidId(parentUrl)) {
-                          config.setUrlToElem(parentResource, parentUrl);
-                      }
-                      
-                      elem[config.restangularFields.parentResource] = parentResource;
-                  } else {
+                    );
+                    var parentResource = _.pick(parent, restangularFieldsForParent);
+
+                    if (config.isValidId(parentId)) {
+                        config.setIdToElem(parentResource, parentId);
+                    }
+                    if (config.isValidId(parentUrl)) {
+                        config.setUrlToElem(parentResource, parentUrl);
+                    }
+
+                    elem[config.restangularFields.parentResource] = parentResource;
+                } else {
                     elem[config.restangularFields.parentResource] = null;
-                  }
-                  return elem;
-              }
-              
-
-              
-              function one(parent, route, id) {
-                  var elem = {};
-                  config.setIdToElem(elem, id);
-                  return restangularizeElem(parent, elem , route);
-              }
+                }
+                return elem;
+            }
 
 
-              function all(parent, route) {
-                  return restangularizeCollection(parent, {} , route, true);
-              }
 
-              function oneUrl(parent, route, url) {
-                  var elem = {};
-                  config.setUrlToElem(elem, url);
-                  return restangularizeElem(parent, elem , route);
-              }
+            function one(parent, route, id) {
+                var elem = {};
+                config.setIdToElem(elem, id);
+                return restangularizeElem(parent, elem , route);
+            }
 
 
-              function allUrl(parent, route, url) {
-                  var elem = {};
-                  config.setUrlToElem(elem, url);
-                  return restangularizeCollection(parent, elem , route, true);
-              }
-              // Promises
-              function restangularizePromise(promise, isCollection) {
-                  promise.call = _.bind(promiseCall, promise);
-                  promise.get = _.bind(promiseGet, promise);
-                  promise[config.restangularFields.restangularCollection] = isCollection;
-                  if (isCollection) {
-                      promise.push = _.bind(promiseCall, promise, "push");
-                  }
-                  return promise;
-              }
-              
-              function promiseCall(method) {
-                  var deferred = $q.defer();
-                  var callArgs = arguments;
-                  this.then(function(val) {
-                      var params = Array.prototype.slice.call(callArgs, 1);
-                      var func = val[method];
-                      func.apply(val, params);
-                      deferred.resolve(val);
-                  });
-                  return restangularizePromise(deferred.promise, this[config.restangularFields.restangularCollection]);
-              }
-              
-              function promiseGet(what) {
-                  var deferred = $q.defer();
-                  this.then(function(val) {
-                      deferred.resolve(val[what]);
-                  });
-                  return restangularizePromise(deferred.promise, this[config.restangularFields.restangularCollection]);
-              }
+            function all(parent, route) {
+                return restangularizeCollection(parent, {} , route, true);
+            }
 
-              function resolvePromise(deferred, response, data) {
-                
+            function oneUrl(parent, route, url) {
+                var elem = {};
+                config.setUrlToElem(elem, url);
+                return restangularizeElem(parent, elem , route);
+            }
+
+
+            function allUrl(parent, route, url) {
+                var elem = {};
+                config.setUrlToElem(elem, url);
+                return restangularizeCollection(parent, elem , route, true);
+            }
+            // Promises
+            function restangularizePromise(promise, isCollection) {
+                promise.call = _.bind(promiseCall, promise);
+                promise.get = _.bind(promiseGet, promise);
+                promise[config.restangularFields.restangularCollection] = isCollection;
+                if (isCollection) {
+                    promise.push = _.bind(promiseCall, promise, "push");
+                }
+                return promise;
+            }
+
+            function promiseCall(method) {
+                var deferred = $q.defer();
+                var callArgs = arguments;
+                this.then(function(val) {
+                    var params = Array.prototype.slice.call(callArgs, 1);
+                    var func = val[method];
+                    func.apply(val, params);
+                    deferred.resolve(val);
+                });
+                return restangularizePromise(deferred.promise, this[config.restangularFields.restangularCollection]);
+            }
+
+            function promiseGet(what) {
+                var deferred = $q.defer();
+                this.then(function(val) {
+                    deferred.resolve(val[what]);
+                });
+                return restangularizePromise(deferred.promise, this[config.restangularFields.restangularCollection]);
+            }
+
+            function resolvePromise(deferred, response, data) {
+
                 // Trigger the full response interceptor.
                 if (config.fullResponse) {
-                  return deferred.resolve(_.extend(response, {
-                    data: data
-                  }));
+                    return deferred.resolve(_.extend(response, {
+                        data: data
+                    }));
                 } else {
-                  deferred.resolve(data);
+                    deferred.resolve(data);
                 }
-              }
-              
-              
-              // Elements
+            }
 
-              function stripRestangular(elem) {
+
+            // Elements
+
+            function stripRestangular(elem) {
                 return _.omit(elem, _.values(_.omit(config.restangularFields, 'id')));
-              }
+            }
 
-              function addCustomOperation(elem) {
-                  elem.customOperation = _.bind(customFunction, elem);
-                  _.each(["put", "post", "get", "delete"], function(oper) {
-                      _.each(["do", "custom"], function(alias) {
-                          var callOperation = oper === 'delete' ? 'remove' : oper;
-                          var name = alias + oper.toUpperCase();
-                          var callFunction;
+            function addCustomOperation(elem) {
+                elem.customOperation = _.bind(customFunction, elem);
+                _.each(["put", "post", "get", "delete"], function(oper) {
+                    _.each(["do", "custom"], function(alias) {
+                        var callOperation = oper === 'delete' ? 'remove' : oper;
+                        var name = alias + oper.toUpperCase();
+                        var callFunction;
 
-                          if (callOperation !== 'put' && callOperation !== 'post') {
-                              callFunction = customFunction; 
-                          } else {
-                              callFunction = function(operation, elem, path, params, headers) {
-                                return _.bind(customFunction, this)(operation, path, params, headers, elem);
-                              }
-                          }
-                          elem[name] = _.bind(callFunction, elem, callOperation);
-                      });
-                  });
-                  elem.customGETLIST = _.bind(fetchFunction, elem);
-                  elem.doGETLIST = elem.customGETLIST;
-              }
-              
-              function copyRestangularizedElement(fromElement) {
-                  var copiedElement = angular.copy(fromElement);
-                  return restangularizeElem(copiedElement[config.restangularFields.parentResource], 
-                          copiedElement, copiedElement[config.restangularFields.route]);
-              }
-              
-              function restangularizeElem(parent, element, route) {
-                  var elem = config.onBeforeElemRestangularized(element, false, route);
-
-                  var localElem = restangularizeBase(parent, elem, route);
-                  
-                  if (config.useCannonicalId) {
-                      localElem[config.restangularFields.cannonicalId] = config.getIdFromElem(localElem)
-                  }
-                  
-                  localElem[config.restangularFields.restangularCollection] = false;
-                  localElem.get = _.bind(getFunction, localElem);
-                  localElem.getList = _.bind(fetchFunction, localElem);
-                  localElem.put = _.bind(putFunction, localElem);
-                  localElem.post = _.bind(postFunction, localElem);
-                  localElem.remove = _.bind(deleteFunction, localElem);
-                  localElem.head = _.bind(headFunction, localElem);
-                  localElem.trace = _.bind(traceFunction, localElem);
-                  localElem.options = _.bind(optionsFunction, localElem);
-                  localElem.patch = _.bind(patchFunction, localElem);
-                  
-                  addCustomOperation(localElem);
-                  return config.transformElem(localElem, false, route, service);
-              }
-              
-              function restangularizeCollection(parent, element, route) {
-                  var elem = config.onBeforeElemRestangularized(element, true, route);
-
-                  var localElem = restangularizeBase(parent, elem, route);
-                  localElem[config.restangularFields.restangularCollection] = true;
-                  localElem.post = _.bind(postFunction, localElem, null);
-                  localElem.head = _.bind(headFunction, localElem);
-                  localElem.trace = _.bind(traceFunction, localElem);
-                  localElem.putElement = _.bind(putElementFunction, localElem);
-                  localElem.options = _.bind(optionsFunction, localElem);
-                  localElem.patch = _.bind(patchFunction, localElem);
-                  localElem.getList = _.bind(fetchFunction, localElem, null);
-                  
-                  addCustomOperation(localElem);
-                  return config.transformElem(localElem, true, route, service);
-              }
-              
-              function putElementFunction(idx, params, headers) {
-                  var __this = this;
-                  var elemToPut = this[idx];
-                  var deferred = $q.defer();
-                  elemToPut.put(params, headers).then(function(serverElem) {
-                      var newArray = copyRestangularizedElement(__this);
-                      newArray[idx] = serverElem;
-                      deferred.resolve(newArray);
-                  }, function(response) {
-                      deferred.reject(response);
-                  });
-                  
-                  return restangularizePromise(deferred.promise, true)
-              }
-              
-              function parseResponse(resData, operation, route, fetchUrl, response, deferred) {
-                  var data = config.responseExtractor(resData, operation, route, fetchUrl, response, deferred);
-                  var etag = response.headers("ETag");
-                  if (data && etag) {
-                      data[config.restangularFields.etag] = etag;
-                  }
-                  return data;
-              }
-              
-              
-              function fetchFunction(what, reqParams, headers) {
-                  var __this = this;
-                  var deferred = $q.defer();
-                  var operation = 'getList';
-                  var url = urlHandler.fetchUrl(this, what);
-                  var whatFetched = what || __this[config.restangularFields.route];
-                  
-
-                  var request = config.fullRequestInterceptor(null, operation,
-                      whatFetched, url, headers || {}, reqParams || {});
-
-                  urlHandler.resource(this, $http, request.headers, request.params, what, 
-                          this[config.restangularFields.etag], operation).getList().then(function(response) {
-                      var resData = response.data;
-                      var data = parseResponse(resData, operation, whatFetched, url, response, deferred);
-                      var processedData = _.map(data, function(elem) {
-                          if (!__this[config.restangularFields.restangularCollection]) {
-                              return restangularizeElem(__this, elem, what);
-                          } else {
-                              return restangularizeElem(__this[config.restangularFields.parentResource],
-                                elem, __this[config.restangularFields.route]);
-                          }
-                          
-                      });
-
-                      processedData = _.extend(data, processedData);
-                      if (!__this[config.restangularFields.restangularCollection]) {
-                          resolvePromise(deferred, response, restangularizeCollection(__this, processedData, what));
-                      } else {
-                          resolvePromise(deferred, response, restangularizeCollection(null, processedData, __this[config.restangularFields.route]));
-                      }
-                  }, function error(response) {
-                      if ( config.errorInterceptor(response) !== false ) {
-                          deferred.reject(response);
-                      }
-                  });
-                  
-                  return restangularizePromise(deferred.promise, true);
-              }
-              
-              function elemFunction(operation, what, params, obj, headers) {
-                  var __this = this;
-                  var etag = this[config.restangularFields.etag];
-                  var deferred = $q.defer();
-                  var resParams = params || {};
-                  var route = what || this[config.restangularFields.route];
-                  var fetchUrl = urlHandler.fetchUrl(this, what);
-                  
-                  var callObj = obj || (operation === 'remove' ? undefined : stripRestangular(this));
-                  var request = config.fullRequestInterceptor(callObj, operation, route, fetchUrl, 
-                    headers || {}, resParams || {});
-                  
-                  var okCallback = function(response) {
-                      var resData = response.data;
-                      var elem = parseResponse(resData, operation, route, fetchUrl, response, deferred);
-                      if (elem) {
-
-                        if (operation === "post" && !__this[config.restangularFields.restangularCollection]) {
-                          resolvePromise(deferred, response, restangularizeElem(__this, elem, what));
+                        if (callOperation !== 'put' && callOperation !== 'post') {
+                            callFunction = customFunction;
                         } else {
-                          resolvePromise(deferred, response, restangularizeElem(__this[config.restangularFields.parentResource], elem, __this[config.restangularFields.route]));
-                        }  
-                        
-                      } else {
-                        resolvePromise(deferred, response, undefined);
-                      }
-                  };
-                  
-                  var errorCallback = function(response) {
-                      if ( config.errorInterceptor(response) !== false ) {
-                          deferred.reject(response);
-                      }
-                  };
-                  // Overring HTTP Method
-                  var callOperation = operation;
-                  var callHeaders = _.extend({}, request.headers);
-                  var isOverrideOperation = config.isOverridenMethod(operation);
-                  if (isOverrideOperation) {
-                    callOperation = 'post';
-                    callHeaders = _.extend(callHeaders, {'X-HTTP-Method-Override': operation === 'remove' ? 'DELETE' : operation});
-                  }
-                  
-                  if (config.isSafe(operation)) {
+                            callFunction = function(operation, elem, path, params, headers) {
+                                return _.bind(customFunction, this)(operation, path, params, headers, elem);
+                            }
+                        }
+                        elem[name] = _.bind(callFunction, elem, callOperation);
+                    });
+                });
+                elem.customGETLIST = _.bind(fetchFunction, elem);
+                elem.doGETLIST = elem.customGETLIST;
+            }
+
+            function copyRestangularizedElement(fromElement) {
+                var copiedElement = angular.copy(fromElement);
+                return restangularizeElem(copiedElement[config.restangularFields.parentResource],
+                    copiedElement, copiedElement[config.restangularFields.route]);
+            }
+
+            function restangularizeElem(parent, element, route) {
+                var elem = config.onBeforeElemRestangularized(element, false, route);
+
+                var localElem = restangularizeBase(parent, elem, route);
+
+                if (config.useCannonicalId) {
+                    localElem[config.restangularFields.cannonicalId] = config.getIdFromElem(localElem)
+                }
+
+                localElem[config.restangularFields.restangularCollection] = false;
+                localElem.get = _.bind(getFunction, localElem);
+                localElem.getList = _.bind(fetchFunction, localElem);
+                localElem.put = _.bind(putFunction, localElem);
+                localElem.post = _.bind(postFunction, localElem);
+                localElem.remove = _.bind(deleteFunction, localElem);
+                localElem.head = _.bind(headFunction, localElem);
+                localElem.trace = _.bind(traceFunction, localElem);
+                localElem.options = _.bind(optionsFunction, localElem);
+                localElem.patch = _.bind(patchFunction, localElem);
+
+                addCustomOperation(localElem);
+                return config.transformElem(localElem, false, route, service);
+            }
+
+            function restangularizeCollection(parent, element, route) {
+                var elem = config.onBeforeElemRestangularized(element, true, route);
+
+                var localElem = restangularizeBase(parent, elem, route);
+                localElem[config.restangularFields.restangularCollection] = true;
+                localElem.post = _.bind(postFunction, localElem, null);
+                localElem.head = _.bind(headFunction, localElem);
+                localElem.trace = _.bind(traceFunction, localElem);
+                localElem.putElement = _.bind(putElementFunction, localElem);
+                localElem.options = _.bind(optionsFunction, localElem);
+                localElem.patch = _.bind(patchFunction, localElem);
+                localElem.getList = _.bind(fetchFunction, localElem, null);
+
+                addCustomOperation(localElem);
+                return config.transformElem(localElem, true, route, service);
+            }
+
+            function putElementFunction(idx, params, headers) {
+                var __this = this;
+                var elemToPut = this[idx];
+                var deferred = $q.defer();
+                elemToPut.put(params, headers).then(function(serverElem) {
+                    var newArray = copyRestangularizedElement(__this);
+                    newArray[idx] = serverElem;
+                    deferred.resolve(newArray);
+                }, function(response) {
+                    deferred.reject(response);
+                });
+
+                return restangularizePromise(deferred.promise, true)
+            }
+
+            function parseResponse(resData, operation, route, fetchUrl, response, deferred) {
+                var data = config.responseExtractor(resData, operation, route, fetchUrl, response, deferred);
+                var etag = response.headers("ETag");
+                if (data && etag) {
+                    data[config.restangularFields.etag] = etag;
+                }
+                return data;
+            }
+
+
+            function fetchFunction(what, reqParams, headers) {
+                var __this = this;
+                var deferred = $q.defer();
+                var operation = 'getList';
+                var url = urlHandler.fetchUrl(this, what);
+                var whatFetched = what || __this[config.restangularFields.route];
+
+                var doRequest = function(request){
+                    urlHandler.resource(this, $http, request.headers, request.params, what,
+                            this[config.restangularFields.etag], operation).getList().then(function(response) {
+                            var resData = response.data;
+                            var data = parseResponse(resData, operation, whatFetched, url, response, deferred);
+                            var processedData = _.map(data, function(elem) {
+                                if (!__this[config.restangularFields.restangularCollection]) {
+                                    return restangularizeElem(__this, elem, what);
+                                } else {
+                                    return restangularizeElem(__this[config.restangularFields.parentResource],
+                                        elem, __this[config.restangularFields.route]);
+                                }
+
+                            });
+
+                            processedData = _.extend(data, processedData);
+                            if (!__this[config.restangularFields.restangularCollection]) {
+                                resolvePromise(deferred, response, restangularizeCollection(__this, processedData, what));
+                            } else {
+                                resolvePromise(deferred, response, restangularizeCollection(null, processedData, __this[config.restangularFields.route]));
+                            }
+                        }, function error(response) {
+                            if ( config.errorInterceptor(response) !== false ) {
+                                deferred.reject(response);
+                            }
+                        });
+                }
+
+                var request = config.fullRequestInterceptor(null, operation,
+                    whatFetched, url, headers || {}, reqParams || {});
+
+                if(request && request.then){
+                    request.then(function(value){
+                        doRequest(value);
+                    })
+                }else{
+                    doRequest(request);
+                }
+
+
+                return restangularizePromise(deferred.promise, true);
+            }
+
+            function elemFunction(operation, what, params, obj, headers) {
+                var __this = this;
+                var etag = this[config.restangularFields.etag];
+                var deferred = $q.defer();
+                var resParams = params || {};
+                var route = what || this[config.restangularFields.route];
+                var fetchUrl = urlHandler.fetchUrl(this, what);
+
+                var doRequest = function(request){
+                    var okCallback = function(response) {
+                        var resData = response.data;
+                        var elem = parseResponse(resData, operation, route, fetchUrl, response, deferred);
+                        if (elem) {
+
+                            if (operation === "post" && !__this[config.restangularFields.restangularCollection]) {
+                                resolvePromise(deferred, response, restangularizeElem(__this, elem, what));
+                            } else {
+                                resolvePromise(deferred, response, restangularizeElem(__this[config.restangularFields.parentResource], elem, __this[config.restangularFields.route]));
+                            }
+
+                        } else {
+                            resolvePromise(deferred, response, undefined);
+                        }
+                    };
+
+                    var errorCallback = function(response) {
+                        if ( config.errorInterceptor(response) !== false ) {
+                            deferred.reject(response);
+                        }
+                    };
+                    // Overring HTTP Method
+                    var callOperation = operation;
+                    var callHeaders = _.extend({}, request.headers);
+                    var isOverrideOperation = config.isOverridenMethod(operation);
                     if (isOverrideOperation) {
-                      urlHandler.resource(this, $http, callHeaders, request.params, 
-                        what, etag, callOperation)[callOperation]({}).then(okCallback, errorCallback);
-                    } else {
-                      urlHandler.resource(this, $http, callHeaders, request.params, 
-                        what, etag, callOperation)[callOperation]().then(okCallback, errorCallback);
+                        callOperation = 'post';
+                        callHeaders = _.extend(callHeaders, {'X-HTTP-Method-Override': operation === 'remove' ? 'DELETE' : operation});
                     }
-                  } else {
-                      urlHandler.resource(this, $http, callHeaders, request.params, 
-                        what, etag, callOperation)[callOperation](request.element).then(okCallback, errorCallback);
-                  }
-                  
-                  return restangularizePromise(deferred.promise);
-              }
-              
-              function getFunction(params, headers) {
-                  return _.bind(elemFunction, this)("get", undefined, params, undefined, headers);
-              }
-              
-              function deleteFunction(params, headers) {
-                  return _.bind(elemFunction, this)("remove", undefined, params, undefined, headers);
-              }
-              
-              function putFunction(params, headers) {
-                  return _.bind(elemFunction, this)("put", undefined, params, undefined, headers);
-              }
 
-              function postFunction(what, elem, params, headers) {
-                  return _.bind(elemFunction, this)("post", what, params, elem, headers);
-              }
+                    if (config.isSafe(operation)) {
+                        if (isOverrideOperation) {
+                            urlHandler.resource(this, $http, callHeaders, request.params,
+                                what, etag, callOperation)[callOperation]({}).then(okCallback, errorCallback);
+                        } else {
+                            urlHandler.resource(this, $http, callHeaders, request.params,
+                                what, etag, callOperation)[callOperation]().then(okCallback, errorCallback);
+                        }
+                    } else {
+                        urlHandler.resource(this, $http, callHeaders, request.params,
+                            what, etag, callOperation)[callOperation](request.element).then(okCallback, errorCallback);
+                    }
+                }
 
-             function headFunction(params, headers) {
-               return _.bind(elemFunction, this)("head", undefined, params, undefined, headers);
-             }
+                var callObj = obj || (operation === 'remove' ? undefined : stripRestangular(this));
+                var request = config.fullRequestInterceptor(callObj, operation, route, fetchUrl,
+                    headers || {}, resParams || {});
 
-             function traceFunction(params, headers) {
-               return _.bind(elemFunction, this)("trace", undefined, params, undefined, headers);
-             }
+                if(request && request.then){
+                    request.then(function(value){
+                        doRequest(value);
+                    })
+                }else{
+                    doRequest(request);
+                }
 
-             function optionsFunction(params, headers) {
-               return _.bind(elemFunction, this)("options", undefined, params, undefined, headers);
-             }
+                return restangularizePromise(deferred.promise);
+            }
 
-             function patchFunction(elem, params, headers) {
-               return _.bind(elemFunction, this)("patch", undefined, params, elem, headers);
-             }
-             
-             function customFunction(operation, path, params, headers, elem) {
-                 return _.bind(elemFunction, this)(operation, path, params, elem, headers);
-             }
-             
-             function addRestangularMethodFunction(name, operation, path, defaultParams, defaultHeaders, defaultElem) {
-                 var bindedFunction;
-                 if (operation === 'getList') {
-                     bindedFunction = _.bind(fetchFunction, this, path); 
-                 } else {
-                     bindedFunction = _.bind(customFunction, this, operation, path);
-                 }
-                 
-                 var createdFunction = function(params, headers, elem) {
-                     var callParams = _.defaults({
-                         params: params,
-                         headers: headers,
-                         elem: elem
-                     }, {
-                         params: defaultParams,
-                         headers: defaultHeaders,
-                         elem: defaultElem
-                     });
-                     return bindedFunction(callParams.params, callParams.headers, callParams.elem);
-                 };
-                 
-                 if (config.isSafe(operation)) {
-                     this[name] = createdFunction;
-                 } else {
-                     this[name] = function(elem, params, headers) {
-                         return createdFunction(params, headers, elem);
-                     }
-                 }
-                  
-             }
+            function getFunction(params, headers) {
+                return _.bind(elemFunction, this)("get", undefined, params, undefined, headers);
+            }
 
-             function withConfigurationFunction(configurer) {
-                 var newConfig = angular.copy(globalConfiguration);
-                 Configurer.init(newConfig, newConfig);
-                 configurer(newConfig);
-                 return createServiceForConfiguration(newConfig);
-             }
-             
-              
-              Configurer.init(service, config);
-              
-              service.copy = _.bind(copyRestangularizedElement, service);
+            function deleteFunction(params, headers) {
+                return _.bind(elemFunction, this)("remove", undefined, params, undefined, headers);
+            }
 
-              service.withConfig = _.bind(withConfigurationFunction, service);
-              
-              service.one = _.bind(one, service, null);
-              
-              service.all = _.bind(all, service, null);
+            function putFunction(params, headers) {
+                return _.bind(elemFunction, this)("put", undefined, params, undefined, headers);
+            }
 
-              service.oneUrl = _.bind(oneUrl, service, null);
-              
-              service.allUrl = _.bind(allUrl, service, null);
+            function postFunction(what, elem, params, headers) {
+                return _.bind(elemFunction, this)("post", what, params, elem, headers);
+            }
 
-              service.restangularizeElement = _.bind(restangularizeElem, service);
+            function headFunction(params, headers) {
+                return _.bind(elemFunction, this)("head", undefined, params, undefined, headers);
+            }
 
-              service.restangularizeCollection = _.bind(restangularizeCollection, service);
-              
-              return service;
-          }
+            function traceFunction(params, headers) {
+                return _.bind(elemFunction, this)("trace", undefined, params, undefined, headers);
+            }
 
-          return createServiceForConfiguration(globalConfiguration);
-          
-        }];
-    }
-);
+            function optionsFunction(params, headers) {
+                return _.bind(elemFunction, this)("options", undefined, params, undefined, headers);
+            }
+
+            function patchFunction(elem, params, headers) {
+                return _.bind(elemFunction, this)("patch", undefined, params, elem, headers);
+            }
+
+            function customFunction(operation, path, params, headers, elem) {
+                return _.bind(elemFunction, this)(operation, path, params, elem, headers);
+            }
+
+            function addRestangularMethodFunction(name, operation, path, defaultParams, defaultHeaders, defaultElem) {
+                var bindedFunction;
+                if (operation === 'getList') {
+                    bindedFunction = _.bind(fetchFunction, this, path);
+                } else {
+                    bindedFunction = _.bind(customFunction, this, operation, path);
+                }
+
+                var createdFunction = function(params, headers, elem) {
+                    var callParams = _.defaults({
+                        params: params,
+                        headers: headers,
+                        elem: elem
+                    }, {
+                        params: defaultParams,
+                        headers: defaultHeaders,
+                        elem: defaultElem
+                    });
+                    return bindedFunction(callParams.params, callParams.headers, callParams.elem);
+                };
+
+                if (config.isSafe(operation)) {
+                    this[name] = createdFunction;
+                } else {
+                    this[name] = function(elem, params, headers) {
+                        return createdFunction(params, headers, elem);
+                    }
+                }
+
+            }
+
+            function withConfigurationFunction(configurer) {
+                var newConfig = angular.copy(globalConfiguration);
+                Configurer.init(newConfig, newConfig);
+                configurer(newConfig);
+                return createServiceForConfiguration(newConfig);
+            }
+
+
+            Configurer.init(service, config);
+
+            service.copy = _.bind(copyRestangularizedElement, service);
+
+            service.withConfig = _.bind(withConfigurationFunction, service);
+
+            service.one = _.bind(one, service, null);
+
+            service.all = _.bind(all, service, null);
+
+            service.oneUrl = _.bind(oneUrl, service, null);
+
+            service.allUrl = _.bind(allUrl, service, null);
+
+            service.restangularizeElement = _.bind(restangularizeElem, service);
+
+            service.restangularizeCollection = _.bind(restangularizeCollection, service);
+
+            return service;
+        }
+
+        return createServiceForConfiguration(globalConfiguration);
+
+    }];
 
 })();
